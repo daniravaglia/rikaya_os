@@ -1,1 +1,2 @@
-hello, world
+Initialized Process Control Blocks   
+ ERROR: allocPcb(): allocated more than MAXPROC entries   kernel panic()
