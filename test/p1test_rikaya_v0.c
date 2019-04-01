@@ -165,6 +165,7 @@ int main() {
 
 	initPcbs();
 	addokbuf("Initialized Process Control Blocks   \n");
+	addokbuf("daniele gay   \n");
 
 	/* Check allocPcb */
 	for (i = 0; i < MAXPROC; i++) {
