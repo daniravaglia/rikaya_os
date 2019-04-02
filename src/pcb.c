@@ -97,7 +97,35 @@ int emptyProcQ(struct list_head *head)
 
 void insertProcQ(struct list_head *head, pcb_t *p)
 {
-	//qui ce sta da lavoracce serio, e' tipo da mettere in ordine di importanza i process
+
+ //QUESTA E' LA BOZZA PIU TOTALE, NON FUNZIONA E SERVE SOLO COME APPUNTI DI COME DOVREBBE FUNZIONARE (ALMENO IN TEORIA)
+
+
+ //qui ce sta da lavoracce serio, e' tipo da mettere in ordine di importanza i process
+ 
+ int sentinella = 0;
+ struct list_head testa = head->next;
+
+ // da fare if lista vuota inserisci e ciaone
+ if(list_empty(&head))
+ {
+  list_add(testa,&p->p_next);
+ }
+
+ while(sentinella == 0)
+ {
+   
+  struct pcb_t* processa = container_of(testa,struct pcb_t,p_next);
+
+  while(&processa->priority != &p->priority)
+  {
+   testa = testa->next;
+  }
+
+  list_add(testa,&p->p_next);
+  sentinella = 1;
+ }
+ 
 }
 
 pcb_t *headProcQ(struct list_head *head)
