@@ -4,7 +4,7 @@
 
 
 struct pcbFree {
-    struct pcb_t process; // provo a fare che ha un puntatore a pcb, perche lasciando come era prima creavo un altro pcb_t che però sta gia nell'array quindi si ripete boh
+    struct pcb_t process; 
     struct list_head iter;
 };
 
@@ -29,17 +29,12 @@ void initPcbs(void)
 
 void freePcb(pcb_t *p)
 {
-	//  Questa la lascio per il futuro, non so perche come faccio a ritornare un qualcosa di errore dato che non torna niente, forse il check lo fa prima btw: Check if oldproc is deletable (no children and no threads)
-   /*
-   if (!(list_empty(&p->p_child) && list_empty(&p->p_sib)))
-      return -1;
-   
+/*
 
+   TODO
+
+INIT_LIST_HEAD(&pcbFree_table[i].iter);
 		*/
-
-
-   // remove oldproc from sibling list 
-   //list_del(&(p->p_next));
 
    struct pcbFree* tmp;
    tmp = container_of(p,struct pcbFree,process);
@@ -94,75 +89,168 @@ int emptyProcQ(struct list_head *head)
 
 	return 0;
 }
-
+/*
+DESCRIZIONE: inserisce l’elemento puntato da p
+nella coda dei processi puntata da head.
+L’inserimento deve avvenire tenendo conto della
+priorita’ di ciascun pcb (campo p->priority). La coda
+dei processi deve essere ordinata in base alla priorita’
+dei PCB, in ordine decrescente (i.e. l’elemento di
+testa è l’elemento con la priorita’ più alta).
+*/
 void insertProcQ(struct list_head *head, pcb_t *p)
 {
 
- //QUESTA E' LA BOZZA PIU TOTALE, NON FUNZIONA E SERVE SOLO COME APPUNTI DI COME DOVREBBE FUNZIONARE (ALMENO IN TEORIA)
+	if(list_empty(head))
+ 	{
+  		list_add(&(p->p_next),head);
+ 	}
 
 
- //qui ce sta da lavoracce serio, e' tipo da mettere in ordine di importanza i process
- 
- int sentinella = 0;
- struct list_head testa = head->next;
+	else
+	{
+		struct list_head *testa = head->next;
 
- // da fare if lista vuota inserisci e ciaone
- if(list_empty(&head))
- {
-  list_add(testa,&p->p_next);
- }
+		struct pcb_t* current_pcb = container_of(testa,struct pcb_t,p_next);
 
- while(sentinella == 0)
- {
-   
-  struct pcb_t* processa = container_of(testa,struct pcb_t,p_next);
-
-  while(&processa->priority != &p->priority)
-  {
-   testa = testa->next;
-  }
-
-  list_add(testa,&p->p_next);
-  sentinella = 1;
- }
- 
+		while(current_pcb->priority > p->priority && testa->next != head)
+		{
+		
+			testa = testa->next;
+			current_pcb = container_of(testa,struct pcb_t,p_next);
+		}
+		
+		if (testa->next == head)
+		{
+			list_add(&(p->p_next),testa);
+		}
+		else
+		{
+			list_add(&(p->p_next),testa->prev);
+		}
+	}
 }
+//DESCRIZIONE: Restituisce l’elemento di testa della
+//coda dei processi da head, SENZA RIMUOVERLO.
+//Ritorna NULL se la coda non ha elementi.
 
 pcb_t *headProcQ(struct list_head *head)
 {
+	if(list_empty(head))
+	{
+		return NULL;
+	}
+
+	return container_of(head->next,struct pcb_t, p_next);	
 
 }
+
+/*DESCRIZIONE: rimuove il primo elemento dalla
+coda dei processi puntata da head. Ritorna NULL
+se la coda è vuota. Altrimenti ritorna il puntatore
+all’elemento rimosso dalla lista*/
 
 pcb_t *removeProcQ(struct list_head *head)
 {
+	if(list_empty(head))
+	{
+		return NULL;
+	}
 
+	struct pcb_t *tmp = container_of(head->next,struct pcb_t, p_next);
+	list_del(head->next);
+	return tmp;
 }
-
+/*
+DESCRIZIONE: Rimuove il PCB puntato da p dalla
+coda dei processi puntata da head. Se p non è
+presente nella coda, restituisce NULL. (NOTA: p
+può trovarsi in una posizione arbitraria della coda).
+*/
 pcb_t *outProcQ(struct list_head *head, pcb_t *p)
 {
+	struct pcb_t *tmp = container_of(head->next,struct pcb_t, p_next);
+	struct list_head *testa = head->next;
 
+	while(testa != head)
+	{
+		if(tmp == p)
+		{
+			list_del(testa);
+			return p;
+		}
+
+		testa = testa->next;
+		tmp = container_of(testa,struct pcb_t, p_next);		
+	}
+
+	return NULL;
 }
 
 
 /* Tree view functions */
+
+/*DESCRIZIONE: restituisce TRUE se il PCB
+puntato da p non ha figli, restituisce FALSE
+altrimenti.*/
 int emptyChild(pcb_t *this)
 {
-
+	if(list_empty(&(this->p_child)))
+		return 1;
+	
+	return 0;
 }
 
+/*DESCRIZIONE: Inserisce il PCB puntato da p
+come figlio del PCB puntato da prnt.*/
 void insertChild(pcb_t *prnt, pcb_t *p)
 {
+	if(list_empty(&(prnt->p_child)))
+	{
+		prnt->p_child.next = &(p->p_child);
+	}
 
+	else
+	{
+		list_add(&(p->p_sib),&(prnt->p_child));
+	}
+
+	p->p_parent = prnt;
 }
 
+/*DESCRIZIONE. Rimuove il primo figlio del PCB
+puntato da p. Se p non ha figli, restituisce NULL.*/
 pcb_t *removeChild(pcb_t *p)
 {
-
+	if(list_empty(&(p->p_child)))
+		return NULL;
+	
+	if(list_empty(&((p->p_child.next)->p_sib)))
+	{
+		INIT_LIST_HEAD(&(p->p_child));
+	}
+	else
+	{
+		p->p_child=(p->p_child.next)->p_sib.next;
+		list_del((p->p_child.next)->p_sib.prev);
+	}
+	
+	return p;
 }
 
+
+/*DESCRIZIONE: Rimuove il PCB puntato
+da p dalla lista dei figli del padre. Se il
+PCB puntato da p non ha un padre,
+restituisce NULL. Altrimenti restituisce
+l’elemento rimosso (cioè p). A
+differenza della removeChild, p può
+trovarsi in una posizione arbitraria
+(ossia non è necessariamente il primo
+figlio del padre).*/
 pcb_t *outChild(pcb_t *p)
 {
-
+	
 }
 //--------------------------------FUNZIONI FILE ASL.H -----------semd_t* getSemd(int *key);
 void initASL(){}
