@@ -207,7 +207,7 @@ void insertChild(pcb_t *prnt, pcb_t *p)
 {
 	if(list_empty(&(prnt->p_child)))
 	{
-		prnt->p_child.next = &(p->p_child);
+		prnt->p_child.next = &(p->p_sib);
 	}
 
 	else
@@ -222,9 +222,19 @@ void insertChild(pcb_t *prnt, pcb_t *p)
 puntato da p. Se p non ha figli, restituisce NULL.*/
 pcb_t *removeChild(pcb_t *p)
 {
+
 	if(list_empty(&(p->p_child)))
 		return NULL;
-	
+
+	list_del(&(p->p_child.next));
+
+	INIT_LIST_HEAD(&p->p_next);
+	INIT_LIST_HEAD(&p->p_child);
+	INIT_LIST_HEAD(&p->p_sib);
+
+	p->p_parent = NULL;
+
+	/*
 	if(list_empty(&((p->p_child.next)->p_sib)))
 	{
 		INIT_LIST_HEAD(&(p->p_child));
@@ -234,6 +244,8 @@ pcb_t *removeChild(pcb_t *p)
 		p->p_child=(p->p_child.next)->p_sib.next;
 		list_del((p->p_child.next)->p_sib.prev);
 	}
+
+	*/
 	
 	return p;
 }
@@ -250,7 +262,20 @@ trovarsi in una posizione arbitraria
 figlio del padre).*/
 pcb_t *outChild(pcb_t *p)
 {
+	if(list_empty(&(p->p_parent)))
+		return NULL;
 	
+	INIT_LIST_HEAD(&(p->p_parent));
+
+	list_del(&(p->p_sib.next));
+	
+	INIT_LIST_HEAD(&p->p_next);
+	INIT_LIST_HEAD(&p->p_child);
+	INIT_LIST_HEAD(&p->p_sib);
+
+	p->p_parent = NULL;
+
+	return p;
 }
 //--------------------------------FUNZIONI FILE ASL.H -----------semd_t* getSemd(int *key);
 void initASL(){}
