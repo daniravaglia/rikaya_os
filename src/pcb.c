@@ -63,11 +63,12 @@ pcb_t *allocPcb(void)
 
 
 		//inizializzo i campi, per adesso solo questi poi vedo
-		INIT_LIST_HEAD(&newProc->process.p_next);
-	  	INIT_LIST_HEAD(&newProc->process.p_child);
-	  	INIT_LIST_HEAD(&newProc->process.p_sib);
+		INIT_LIST_HEAD(&(newProc->process.p_next));
+	  	INIT_LIST_HEAD(&(newProc->process.p_child));
+	  	INIT_LIST_HEAD(&(newProc->process.p_sib));
+	  	newProc->process.priority = 0;
 
-	  	return &newProc->process;	
+	  	return &(newProc->process);	
 
     }
 
@@ -76,7 +77,7 @@ pcb_t *allocPcb(void)
 // inizializza la lista dei pcb inizializzando l'elemnento sentinella
 void mkEmptyProcQ(struct list_head *head)
 {
-	INIT_LIST_HEAD(&head); //boh cosi semplice?
+	INIT_LIST_HEAD(head); //boh cosi semplice?
 }
 
 // restituisce true se la lista puntata da head e' vuota, false altrimenti
@@ -115,7 +116,6 @@ void insertProcQ(struct list_head *head, pcb_t *p)
 
 		while(current_pcb->priority > p->priority && testa->next != head)
 		{
-		
 			testa = testa->next;
 			current_pcb = container_of(testa,struct pcb_t,p_next);
 		}
@@ -282,7 +282,7 @@ struct semdFree {
 };
 
 struct list_head semdFree_h; 
-struct semd_t semd_table[MAXPROC]; 
+struct semdFree semd_table[MAXPROC]; 
 struct list_head semd_h;
 
 void initASL()
@@ -293,6 +293,8 @@ void initASL()
     for (int i = 0; i<MAXPROC; i++)
     {
         INIT_LIST_HEAD(&semd_table[i].iter); 
+        INIT_LIST_HEAD(&(semd_table[i].semd.s_procQ));
+        INIT_LIST_HEAD(&(semd_table[i].semd.s_next));
         list_add(&semd_table[i].iter,&semdFree_h);    
     }
 }
@@ -300,16 +302,19 @@ void initASL()
 /*DESCRIZIONE: restituisce il puntatore al SEMD nella ASL
 la cui chiave è pari a key. Se non esiste un elemento nella
 ASL con chiave eguale a key, viene restituito NULL.*/
-semd_t* getSemd(int *key);
+semd_t* getSemd(int *key)
 {
-    list_head *testa = semd_h->next;
-    while (testa->next != semd_h)
+
+    struct list_head *testa = semd_h.next;
+    while (testa->next != &semd_h)
     {
-        semd_t *tmp = container_of(testa, struct semd_t, s_next);
-        if (tmp->key == key)
+        struct semd_t *tmp = container_of(testa, struct semd_t, s_next);
+        if (tmp->s_key == key)
             return tmp;
+        testa = testa->next;
     }
     return NULL;
+    
 }
 /*DESCRIZIONE: Viene inserito il PCB puntato da p nella
 coda dei processi bloccati associata al SEMD con chiave
@@ -322,16 +327,55 @@ vuota, restituisce TRUE. In tutti gli altri casi, restituisce
 FALSE.*/
 int insertBlocked(int *key,pcb_t* p)
 {
-    semd_t *tmp;
+    struct semd_t *tmp;
+    //non trovo il semaforo, ne devo prendere uno dalla free list
     if ((tmp = getSemd(key))== NULL)
     {
+        //controllo se la free list è vuota
         if (list_empty(&semdFree_h))
             return 1;
-        list_head *new_semd = semdFree_h->next;
-        list_del(semdFree_h->next);
         
+        struct list_head *new_semd = semdFree_h.next;
+        list_del(semdFree_h.next);
+        list_add(new_semd, &semd_h);
+        struct semdFree *tmp2 = container_of(new_semd,struct semdFree, iter);
+        struct semd_t *tmp3 = &(tmp2->semd);
+        tmp3->s_key = key;
+        p->p_semkey = key;       
+        
+        insertProcQ(&(tmp3->s_procQ), p);
+     }
+     return 0;
 }
-pcb_t* removeBlocked(int *key){}
+/*DESCRIZIONE: Ritorna il primo PCB dalla
+coda dei processi bloccati (s_ProcQ)
+associata al SEMD della ASL con chiave key.
+Se tale descrittore non esiste nella ASL,
+restituisce NULL. Altrimenti, restituisce
+l’elemento rimosso. Se la coda dei processi
+bloccati per il semaforo diventa vuota,
+rimuove il descrittore corrispondente dalla
+ASL e lo inserisce nella coda dei descrittori
+liberi (semdFree).*/
+pcb_t* removeBlocked(int *key)
+{
+    addokbuf("cazzzo  2 \n");
+    struct semd_t *tmp;    
+    if ((tmp = getSemd(key))== NULL)
+        return NULL;
+        
+    struct pcb_t *proc = removeProcQ(&(tmp->s_procQ));
+    
+    //caso in cui il processo tolto dalla coda del semaforo è l'ultimo
+    if (list_empty(&(tmp->s_procQ)))
+    {
+        addokbuf("cazzzo   \n");
+        struct semdFree *master = container_of(tmp, struct semdFree, semd);  
+        list_del(&(tmp->s_next));
+        list_add(&(master->iter), &semdFree_h);
+    }
+    return proc;
+}
 pcb_t* outBlocked(pcb_t *p){}
 pcb_t* headBlocked(int *key){}
 void outChildBlocked(pcb_t *p){}
