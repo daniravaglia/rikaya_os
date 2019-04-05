@@ -165,7 +165,7 @@ int main() {
 
 	initPcbs();
 	addokbuf("Initialized Process Control Blocks   \n");
-	addokbuf("daniele gay   \n");
+	addokbuf("daniele    \n");
 
 	/* Check allocPcb */
 	for (i = 0; i < MAXPROC; i++) {
@@ -270,17 +270,17 @@ int main() {
 	insertChild(procp[0], procp[3]);
 	insertChild(procp[0], procp[7]);
 	addokbuf("Inserted 2 children of pcb0  \n");
-	
+
 	/* make procp[8],procp[9] children of procp[7] */
 	insertChild(procp[7], procp[8]);
 	insertChild(procp[7], procp[9]);
 	addokbuf("Inserted 2 children of pcb7  \n");
 
 	if (emptyChild(procp[0]))
-	  adderrbuf("ERROR: emptyChild(procp[0]): unexpected TRUE   ");
+	  adderrbuf("ERROR: emptyChild(procp[0]): unexpected TRUE  1 ");
 	
 	if (emptyChild(procp[7]))
-		adderrbuf("ERROR: emptyChild(procp[0]): unexpected TRUE   ");
+		adderrbuf("ERROR: emptyChild(procp[0]): unexpected TRUE 2  ");
 	
 	/* Check outChild */
 	q = outChild(procp[1]);
@@ -292,21 +292,26 @@ int main() {
 		adderrbuf("ERROR: outChild(procp[8]) failed ");
 	
 	/* Check removeChild */
-	q = removeChild(procp[0]);
+	q = removeChild(procp[0]);               
+	
 	if (q == NULL || q != procp[2])
-		adderrbuf("ERROR: removeChild(procp[0]) failed ");
+		adderrbuf("ERROR: removeChild(procp[0]) failed 2");
 	
 	q = removeChild(procp[7]);
+	
+	
 	if (q == NULL || q != procp[9])
 		adderrbuf("ERROR: removeChild(procp[7]) failed ");
 	
 	q = removeChild(procp[0]);
+	
+
 	if (q == NULL || q != procp[3])
-		adderrbuf("ERROR: removeChild(procp[0]) failed ");
+		adderrbuf("ERROR: removeChild(procp[0]) failed 3");
 
 	q = removeChild(procp[0]);
 	if (q == NULL || q != procp[7])
-		adderrbuf("ERROR: removeChild(procp[0]) failed ");
+		adderrbuf("ERROR: removeChild(procp[0]) failed 7");
 	
 	
 	if (removeChild(procp[0]) != NULL)

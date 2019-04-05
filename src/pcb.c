@@ -208,13 +208,13 @@ void insertChild(pcb_t *prnt, pcb_t *p)
 	if(list_empty(&(prnt->p_child)))
 	{
 		prnt->p_child.next = &(p->p_sib);
+		prnt->p_child.prev = &(p->p_sib);
 	}
 
 	else
 	{
-		list_add(&(p->p_sib),&(prnt->p_child));
-	}
-
+		list_add_tail(&(p->p_sib),(prnt->p_child.next));
+    }
 	p->p_parent = prnt;
 }
 
@@ -225,29 +225,23 @@ pcb_t *removeChild(pcb_t *p)
 
 	if(list_empty(&(p->p_child)))
 		return NULL;
-
-	list_del(&(p->p_child.next));
-
-	INIT_LIST_HEAD(&p->p_next);
-	INIT_LIST_HEAD(&p->p_child);
-	INIT_LIST_HEAD(&p->p_sib);
-
-	p->p_parent = NULL;
-
-	/*
-	if(list_empty(&((p->p_child.next)->p_sib)))
-	{
-		INIT_LIST_HEAD(&(p->p_child));
-	}
-	else
-	{
-		p->p_child=(p->p_child.next)->p_sib.next;
-		list_del((p->p_child.next)->p_sib.prev);
-	}
-
-	*/
+		
+    pcb_t *tmp = container_of(p->p_child.next, struct pcb_t, p_sib);
+    
+    if (list_empty(&(tmp->p_sib)))
+    {
+        INIT_LIST_HEAD(&(p->p_child));
+    }
+    else 
+    {
+        p->p_child.next = tmp->p_sib.next;
+        p->p_child.prev = tmp->p_sib.next;
+        list_del(&(tmp->p_sib));
+    }
 	
-	return p;
+	INIT_LIST_HEAD(&(tmp->p_sib));
+	tmp->p_parent = NULL;
+	return tmp;
 }
 
 
@@ -262,24 +256,81 @@ trovarsi in una posizione arbitraria
 figlio del padre).*/
 pcb_t *outChild(pcb_t *p)
 {
-	if(list_empty(&(p->p_parent)))
+	if(p->p_parent == NULL)
 		return NULL;
-	
-	INIT_LIST_HEAD(&(p->p_parent));
-
-	list_del(&(p->p_sib.next));
-	
-	INIT_LIST_HEAD(&p->p_next);
-	INIT_LIST_HEAD(&p->p_child);
-	INIT_LIST_HEAD(&p->p_sib);
-
+		
+	pcb_t *parent = p->p_parent;
 	p->p_parent = NULL;
-
+    
+    parent->p_child.next = p->p_sib.next;
+    parent->p_child.prev = p->p_sib.next;
+    
+	list_del(&(p->p_sib));
+	
+	INIT_LIST_HEAD(&(p->p_sib));
 	return p;
 }
-//--------------------------------FUNZIONI FILE ASL.H -----------semd_t* getSemd(int *key);
-void initASL(){}
-int insertBlocked(int *key,pcb_t* p){}
+//--------------------------------FUNZIONI FILE ASL.H -----------------------------------
+/*DESCRIZIONE: Inizializza la lista dei semdFree in
+modo da contenere tutti gli elementi della
+semdTable. Questo metodo viene invocato una
+volta sola durante l’inizializzazione della struttura
+dati.*/
+struct semdFree {
+    struct semd_t semd; 
+    struct list_head iter;
+};
+
+struct list_head semdFree_h; 
+struct semd_t semd_table[MAXPROC]; 
+struct list_head semd_h;
+
+void initASL()
+{
+    INIT_LIST_HEAD(&semdFree_h);
+    INIT_LIST_HEAD(&semd_h);
+    
+    for (int i = 0; i<MAXPROC; i++)
+    {
+        INIT_LIST_HEAD(&semd_table[i].iter); 
+        list_add(&semd_table[i].iter,&semdFree_h);    
+    }
+}
+
+/*DESCRIZIONE: restituisce il puntatore al SEMD nella ASL
+la cui chiave è pari a key. Se non esiste un elemento nella
+ASL con chiave eguale a key, viene restituito NULL.*/
+semd_t* getSemd(int *key);
+{
+    list_head *testa = semd_h->next;
+    while (testa->next != semd_h)
+    {
+        semd_t *tmp = container_of(testa, struct semd_t, s_next);
+        if (tmp->key == key)
+            return tmp;
+    }
+    return NULL;
+}
+/*DESCRIZIONE: Viene inserito il PCB puntato da p nella
+coda dei processi bloccati associata al SEMD con chiave
+key. Se il semaforo corrispondente non è presente nella
+ASL, alloca un nuovo SEMD dalla lista di quelli liberi
+(semdFree) e lo inserisce nella ASL, settando I campi in
+maniera opportuna (i.e. key e s_procQ). Se non è possibile
+allocare un nuovo SEMD perché la lista di quelli liberi è
+vuota, restituisce TRUE. In tutti gli altri casi, restituisce
+FALSE.*/
+int insertBlocked(int *key,pcb_t* p)
+{
+    semd_t *tmp;
+    if ((tmp = getSemd(key))== NULL)
+    {
+        if (list_empty(&semdFree_h))
+            return 1;
+        list_head *new_semd = semdFree_h->next;
+        list_del(semdFree_h->next);
+        
+}
 pcb_t* removeBlocked(int *key){}
 pcb_t* outBlocked(pcb_t *p){}
 pcb_t* headBlocked(int *key){}

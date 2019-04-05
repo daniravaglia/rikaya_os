@@ -1,6 +1,6 @@
 {
     "boot": {
-        "core-file": "/home/students/vairo.dipasquale/rykaya/kernel.core.umps",
+        "core-file": "../kernel.core.umps",
         "load-core-file": true
     },
     "bootstrap-rom": "/usr/local/share/umps2/coreboot.rom.umps",
@@ -16,7 +16,7 @@
     "num-ram-frames": 64,
     "symbol-table": {
         "asid": 64,
-        "file": "/home/students/vairo.dipasquale/rykaya/kernel.stab.umps"
+        "file": "../kernel.stab.umps"
     },
     "tlb-size": 16
 }
