@@ -358,7 +358,7 @@ int main() {
 	/* check if semaphore descriptors are returned to the free list */
 	p = removeBlocked(&sem[11]);
 	if (insertBlocked(&sem[11],p))
-		adderrbuf("ERROR: removeBlocked(): fails to return to free list   ");
+		adderrbuf("ERROR: removeBlocked(): fails to return to free list   1");
 
 	if (insertBlocked(&sem[MAXSEM], procp[9]) == FALSE)
 		adderrbuf("ERROR: insertBlocked(): inserted more than MAXPROC   ");
