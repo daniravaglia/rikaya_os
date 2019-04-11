@@ -26,4 +26,19 @@
 
 #define CR 0x0a   /* carriage return as returned by the terminal */
 
+/* New areas */
+#define SYSCALL_BREAK_NEWAREA 0x200003D4
+#define PRGM_TRAP_NEWAREA     0x200002BC
+#define TLB_MNGMT_NEWAREA     0x200001A4
+#define INTRPT_NEWAREA        0x2000008C
+
+/* RAM */
+#define RAM_BASE 0x10000000
+#define RAM_SIZE 0x10000004 
+#define RAMTOP RAM_SIZE + RAM_BASE
+
+
+
+
+
 #endif
