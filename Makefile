@@ -37,12 +37,12 @@ all : kernel.core.umps
 kernel.core.umps : kernel
 	umps2-elf2umps -k $<
 
-#kernel : obj/p1test_rikaya_v0.o obj/pcb.o crtso.o libumps.o
-kernel : obj/init.o obj/handler.o obj/pcb.o obj/pcb.o crtso.o libumps.o
+#kernel : test/obj/p1test_rikaya_v0.o obj/pcb.o crtso.o libumps.o
+kernel : obj/p1.5test_rikaya_v0.o obj/init.o obj/handler.o obj/pcb.o obj/pcb.o crtso.o libumps.o
 	$(LD) -o $@ $^ $(LDFLAGS)
 
-#obj/p1test_rikaya_v0.o : test/p1test_rikaya_v0.c
-#	$(CC) $(CFLAGS) -c test/p1test_rikaya_v0.c -o obj/p1test_rikaya_v0.o
+obj/p1.5test_rikaya_v0.o : test/p1.5test_rikaya_v0.c
+	$(CC) $(CFLAGS) -c test/p1.5test_rikaya_v0.c -o obj/p1.5test_rikaya_v0.o
 
 obj/%.o : src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
