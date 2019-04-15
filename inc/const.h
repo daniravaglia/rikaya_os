@@ -26,6 +26,8 @@
 
 #define CR 0x0a   /* carriage return as returned by the terminal */
 
+#define FRAMESIZE 4096
+
 /* New areas */
 #define SYSCALL_BREAK_NEWAREA 0x200003D4
 #define PRGM_TRAP_NEWAREA     0x200002BC
@@ -35,7 +37,9 @@
 /* RAM */
 #define RAM_BASE 0x10000000
 #define RAM_SIZE 0x10000004 
-#define RAMTOP RAM_SIZE + RAM_BASE
+#define RAMTOP RAM_SIZE + RAM_BASE 
+
+#define TIME_SLICE 3000
 
 
 

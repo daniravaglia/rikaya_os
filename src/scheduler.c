@@ -1,8 +1,7 @@
 #include "const.h"
 #include "listx.h"
-
 #include <umps/libumps.h>
-
+#include <pcb.h>
 #include <scheduler.h>
 
 // APPUNTI AUDIO
@@ -37,5 +36,6 @@
 
 void scheduler()
 {
-
+    pcb_t *proc = removeProcQ(&ready_queue);
+    LDST(&(proc->p_s));
 }
