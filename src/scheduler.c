@@ -9,6 +9,8 @@
 // Lo scheduler è una funzione che viene chiamata ogni tot secondi per fare
 // context switch (3 millisecodni)
 //
+//ogni volta che scadono i 3 millisec viene invocato lo scheduler
+// 
 // Mette da parte il processo in esecuzione e attiva il prossimo nella coda
 // dei processi pronti
 //
@@ -28,7 +30,7 @@
 // Questo serve per debuggare, è una funzione che viene chiamata dall'ultimo 
 // processo e che dovrebbe stampare "3 2 3 1 2 3 1 2 3 1 2 3" ecc ecc
 
-
+void achtung(){ }
 
 
 
@@ -36,6 +38,31 @@
 
 void scheduler()
 {
+    
     pcb_t *proc = removeProcQ(&ready_queue);
+    
+    /* ripristino la priorità originale del proc */
+    proc->priority = proc->orig_priority;
+    
+    /* incremento la priority di tutti i processi rimasti in coda */
+    struct list_head* iter;
+	list_for_each(iter,&ready_queue) {
+		pcb_t *item=container_of(iter,struct pcb_t,p_next);
+		item->priority += 1; 	
+	}
+	
+    setTIMER(TIME_SLICE);
     LDST(&(proc->p_s));
+
 }
+
+
+
+
+
+
+
+
+
+
+
