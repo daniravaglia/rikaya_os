@@ -58,7 +58,7 @@
 #define STEPS 6
 #define GANTT_SIZE 20
 
-#define TIME_SLICE 3000
+#define TIME_SLICE 0xBB8
 
 
 

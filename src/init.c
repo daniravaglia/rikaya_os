@@ -29,7 +29,7 @@ int main(void)
     struct pcb_t *p1 = allocPcb();
     /*0010 1000 0000 0000 1111 1111 0000 0001*/
     p1->p_s.status = (unsigned int) 0x1000FF01;
-    p1->p_s.reg_sp = (memaddr) RAMTOP - FRAMESIZE * 1;
+    p1->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 1);
     p1->p_s.pc_epc = (memaddr) test1;
     p1->orig_priority = 1;
     p1->priority = 1;
@@ -37,7 +37,7 @@ int main(void)
     /*TEST 2*/
     struct pcb_t *p2 = allocPcb();
     p2->p_s.status = 0x1000FF01;
-    p2->p_s.reg_sp = (memaddr) RAMTOP - FRAMESIZE * 2;
+    p2->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 2);
     p2->p_s.pc_epc = (memaddr) test2;
     p2->orig_priority = 2;
     p2->priority = 2;
