@@ -40,7 +40,6 @@ void scheduler()
 {
     
     pcb_t *proc = removeProcQ(&ready_queue);
-    
     /* ripristino la priorità originale del proc */
     proc->priority = proc->orig_priority;
     

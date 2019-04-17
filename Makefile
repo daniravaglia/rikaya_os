@@ -41,8 +41,8 @@ kernel.core.umps : kernel
 kernel : obj/p1.5test_rikaya_v0.o obj/init.o obj/handler.o obj/scheduler.o obj/pcb.o crtso.o libumps.o
 	$(LD) -o $@ $^ $(LDFLAGS)
 
-obj/p1.5test_rikaya_v0.o : test/p1.5test_rikaya_v0.c
-	$(CC) $(CFLAGS) -c test/p1.5test_rikaya_v0.c -o obj/p1.5test_rikaya_v0.o
+#obj/p1.5test_rikaya_v0.o : test/p1.5test_rikaya_v0.c
+#	$(CC) $(CFLAGS) -c test/p1.5test_rikaya_v0.c -o obj/p1.5test_rikaya_v0.o
 
 obj/%.o : src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
