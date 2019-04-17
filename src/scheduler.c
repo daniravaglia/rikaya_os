@@ -30,10 +30,12 @@
 // Questo serve per debuggare, è una funzione che viene chiamata dall'ultimo 
 // processo e che dovrebbe stampare "3 2 3 1 2 3 1 2 3 1 2 3" ecc ecc
 
+#define IT 0x10000020
+
 void achtung(){ }
 
 
-
+struct devregarea *reg_area = 0x10000000;
 
 
 void scheduler()
@@ -50,7 +52,9 @@ void scheduler()
 		item->priority += 1; 	
 	}
 	
+	reg_area->intervaltimer = TIME_SLICE;
     setTIMER(TIME_SLICE);
+    //IT = TIME_SLICE;
     LDST(&(proc->p_s));
 
 }
