@@ -32,7 +32,7 @@
 
 #define IT 0x10000020
 
-void achtung(){ }
+
 
 
 struct devregarea *reg_area = 0x10000000;
@@ -44,11 +44,12 @@ void scheduler()
     pcb_t *proc = removeProcQ(&ready_queue);
     /* ripristino la priorità originale del proc */
     proc->priority = proc->orig_priority;
-    
+    log_process_order(proc->orig_priority);
     /* incremento la priority di tutti i processi rimasti in coda */
     struct list_head* iter;
 	list_for_each(iter,&ready_queue) {
 		pcb_t *item=container_of(iter,struct pcb_t,p_next);
+		//TODO loggare priority
 		item->priority += 1; 	
 	}
 	
