@@ -86,20 +86,23 @@ void insertProcQ(struct list_head *head, pcb_t *p)
 	{
 		struct list_head *testa = head->next;
 		struct pcb_t* current_pcb = container_of(testa,struct pcb_t,p_next);
-		while(current_pcb->priority > p->priority && testa->next != head)
-		{
-			testa = testa->next;
-			current_pcb = container_of(testa,struct pcb_t,p_next);
-		}
-		if (testa->next == head)
-		{
-			list_add(&(p->p_next),testa);
-		}
-		else
-		{
-			list_add(&(p->p_next),testa->prev);
-		}
-	}
+	    while (testa != head)
+	    {
+	        if (current_pcb->priority < p->priority)
+	        {   
+	            list_add(&(p->p_next), testa->prev);
+	            break;
+	        }
+	        
+	        if (testa->next == head)
+	        {
+	            list_add(&(p->p_next), testa);
+	            break;
+	        }
+	        testa = testa->next;
+	        current_pcb = container_of(testa,struct pcb_t,p_next);
+	    }
+    }
 }
 //DESCRIZIONE: Restituisce l’elemento di testa della
 //coda dei processi da head, SENZA RIMUOVERLO.

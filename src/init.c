@@ -6,12 +6,10 @@
 #include <scheduler.h>
 #include "p1.5test_rikaya_v0.h"
 
-#define IT 0x10000020
-
 void populate(state_t *area, memaddr addr)
 {
     state_t *new_area = area;
-    STST(new_area);
+    //STST(new_area);
     new_area->pc_epc = addr;
     new_area->reg_sp = (memaddr) RAMTOP;
     new_area->status = 0x10000000; /* tutti i bit settati a 0 */
@@ -29,7 +27,6 @@ int main(void)
     
     /*TEST 1*/
     struct pcb_t *p1 = allocPcb();
-    /*0010 1000 0000 0000 1111 1111 0000 0001*/
     p1->p_s.status = 0x10000404;
     p1->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 1);
     p1->p_s.pc_epc = (memaddr) test1;
@@ -46,7 +43,6 @@ int main(void)
     
     /*TEST 3*/
     struct pcb_t *p3 = allocPcb();
-    //p3->p_s.status = (0x1000FF00 | 0x1);
     p3->p_s.status = 0x10000404;
     p3->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 3);
     p3->p_s.pc_epc = (memaddr) test3;
@@ -58,5 +54,4 @@ int main(void)
     insertProcQ(&ready_queue, p3);
 
     scheduler();
-    adderrbuf("returned from the scheduler");
 }
