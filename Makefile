@@ -30,12 +30,12 @@ LDFLAGS = -G 0 -nostdlib -T $(UMPS2_DATA_DIR)/umpscore.ldscript
 # Add the location of crt*.S to the search path
 VPATH = $(UMPS2_DATA_DIR)
 
-.PHONY : all clean
+.PHONY : all clean 
 
-all : kernel.core.umps
+all : isdir kernel.core.umps 
 
 kernel.core.umps : kernel
-	umps2-elf2umps -k $<
+	umps2-elf2umps -k $< 
 
 #kernel : test/obj/p1test_rikaya_v0.o obj/pcb.o crtso.o libumps.o
 kernel : obj/p1.5test_rikaya_v0.o obj/init.o obj/handler.o obj/scheduler.o obj/pcb.o crtso.o libumps.o
@@ -53,6 +53,9 @@ clean :
 # Pattern rule for assembly modules
 %.o : %.S
 	$(CC) $(CFLAGS) -c -o $@ $<
+	
+isdir :
+	if [ ! -d "obj" ]; then mkdir obj; fi
 
 
 
