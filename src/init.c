@@ -9,10 +9,9 @@
 void populate(state_t *area, memaddr addr)
 {
     state_t *new_area = area;
-    //STST(new_area);
     new_area->pc_epc = addr;
     new_area->reg_sp = (memaddr) RAMTOP;
-    new_area->status = 0x10000000; /* tutti i bit settati a 0 */
+    new_area->status = (memaddr) 0x10000000; /* tutti i bit settati a 0 */
 }
 
 int main(void)
@@ -27,7 +26,7 @@ int main(void)
     
     /*TEST 1*/
     struct pcb_t *p1 = allocPcb();
-    p1->p_s.status = 0x10000404;
+    p1->p_s.status = (memaddr) 0x10000404;
     p1->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 1);
     p1->p_s.pc_epc = (memaddr) test1;
     p1->orig_priority = 1;
@@ -35,7 +34,7 @@ int main(void)
     
     /*TEST 2*/
     struct pcb_t *p2 = allocPcb();
-    p2->p_s.status = 0x10000404;
+    p2->p_s.status = (memaddr) 0x10000404;
     p2->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 2);
     p2->p_s.pc_epc = (memaddr) test2;
     p2->orig_priority = 2;
@@ -43,7 +42,7 @@ int main(void)
     
     /*TEST 3*/
     struct pcb_t *p3 = allocPcb();
-    p3->p_s.status = 0x10000404;
+    p3->p_s.status = (memaddr) 0x10000404;
     p3->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 3);
     p3->p_s.pc_epc = (memaddr) test3;
     p3->orig_priority = 3;

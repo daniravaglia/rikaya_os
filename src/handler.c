@@ -9,14 +9,31 @@
 /*funzione per debug*/
 void debug1(unsigned int value){ }
 
-// Per questa fase va controlalta solo una syscall, ovvero quella che termina
-// il processo. Ecco perche viene chiamata alla fine del test. "Per gestirla 
-// dovete popolare la new area relativa a syscalle  brakpoint con handler
-// e implementare questa syscall che termina il process( rumuoverlo dalla lis
-// ta dei processi che devono essere eseguiti)"
-
-
-
+/*rimozione di tutta la progenie del processo "father" dalla ready queue*/
+void kill_em_all(struct pcb_t *father)
+{
+    /*rimuovo il padre dalla ready queue*/
+    outProcQ(&ready_queue, father);
+    
+    /*se non ha figli mi fermo*/
+    if (!emptyChild(father))
+    {
+        struct pcb_t *child = container_of(father->p_child.next, struct pcb_t, p_sib);
+        struct list_head *pos;
+        
+        /*richiamo la funzione sul primo figlio*/
+        kill_em_all(child);
+        
+        list_for_each(pos, &(child->p_sib))
+        {
+            struct pcb_t *sib = container_of(pos, struct pcb_t, p_sib);
+            /*richiamo la funzione per tutti i restanti figli*/
+            kill_em_all(sib);
+        }
+    }
+    else
+        return;
+}
 
 void sys_break_handler()
 {
@@ -34,35 +51,12 @@ void sys_break_handler()
             /*termina il processo corrente e tutta la sua progenie, rimuovendoli 
               dalla Ready Queue.*/
             case SYS3:
-                if (emptyChild(active_proc))
-                {
-                    active_proc = NULL;
-                }
-                else {
-                    while (!(emptyChild(active_proc)))
-                    {
-                        struct pcb_t *child = removeChild(active_proc);
-                        outProcQ(&ready_queue, child);
-                    }
-                    active_proc = NULL;
-               }
-               scheduler();
+                kill_em_all(active_proc);
+                active_proc = NULL; 
+                scheduler();
         }
     }
 }
-
-
-//SYSCALL 3
-
-void kill_process(pcb_t* proc)
-{
-   //fare il loop che cerca nell'albero il processo da uccidere con removeChild
-   // (il loop ricorsivo ovviamente)
-   
-
-
-}
-
 
 void prgrm_trap_handler() 
 {
@@ -77,8 +71,7 @@ void tlb_mngmt_handler()
 
 void intrpt_handler() 
 {
-    /*leggo la causa*/
-    
+   
     /*prendo solo il bit riguardante l'interval timer*/
     unsigned int device = ((getCAUSE() >> 8) & 0x4) >> 2;
     

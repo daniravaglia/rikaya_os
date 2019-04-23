@@ -1,7 +1,8 @@
 
 void sys_break_handler();
 
-void kill_process(pcb_t* proc);
+/*rimozione di tutta la progenie del processo "father" dalla ready queue*/
+void kill_em_all(struct pcb_t *father);
 
 void prgrm_trap_handler();
 
