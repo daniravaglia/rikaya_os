@@ -6,7 +6,7 @@
 #include <handler.h>
 #include <umps/arch.h>
 
-
+/*funzione per debug*/
 void debug1(unsigned int value){ }
 
 // Per questa fase va controlalta solo una syscall, ovvero quella che termina
@@ -20,27 +20,35 @@ void debug1(unsigned int value){ }
 
 void sys_break_handler()
 {
-   //ci sono da fare ovviamente cose prima ma ad una certa c'è da fare lo switch
-   //delle syscall
-   
-   state_t* oldState;
-
-   pcb_t* process;
-  
-   //inseirire l'indirizzo della oldarea
-
-   //questo pezzo l'ho preso da coso poi lo si vede bene
-   // per adesso serve come bozza
-   /*
-   int sysCallNumber = oldState->s_a0;
-
-   switch (sysCallNumber)
-   {
-      case 3:
-         kill_process();
-         break;
-
-   }*/
+    state_t *old_area = (state_t*) 0x20000348;
+    
+    /*prendo solo i bit riguardanti la causa dell'eccezione*/
+    unsigned int exc_code = ((getCAUSE() >> 2) & 0x1F);
+    
+    /* se il codice riguarda una system call*/
+    if (exc_code == 8)
+    {
+        unsigned int syscall = old_area->gpr[3];
+        switch (syscall)
+        {
+            /*termina il processo corrente e tutta la sua progenie, rimuovendoli 
+              dalla Ready Queue.*/
+            case SYS3:
+                if (emptyChild(active_proc))
+                {
+                    active_proc = NULL;
+                }
+                else {
+                    while (!(emptyChild(active_proc)))
+                    {
+                        struct pcb_t *child = removeChild(active_proc);
+                        outProcQ(&ready_queue, child);
+                    }
+                    active_proc = NULL;
+               }
+               scheduler();
+        }
+    }
 }
 
 
@@ -71,8 +79,7 @@ void intrpt_handler()
 {
     /*leggo la causa*/
     
-    /*prendo solo i bit riguardanti Cause.ExcCode*/
-    //unsigned int cause = ((area->cause >> 2) & 0x1F);
+    /*prendo solo il bit riguardante l'interval timer*/
     unsigned int device = ((getCAUSE() >> 8) & 0x4) >> 2;
     
     /*Interval Timer*/
@@ -90,8 +97,6 @@ void intrpt_handler()
         }
         active_proc->p_s.hi = old_area->hi;        
         active_proc->p_s.lo = old_area->lo;
-
-        //active_proc->p_s.pc_epc += WORD_SIZE;
         
         insertProcQ(&ready_queue, active_proc);
         scheduler();
