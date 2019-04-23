@@ -1,7 +1,9 @@
+#define SYSOLDAREA 0x20000348
+#define SYS3 3
 
 void sys_break_handler();
 
-void kill_process(pcb_t* proc);
+void kill_process();
 
 void prgrm_trap_handler();
 
