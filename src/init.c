@@ -1,10 +1,12 @@
 #include <listx.h>
 #include <const.h>
 #include <pcb.h>
+#include <asl.h>
 #include <umps/libumps.h>
 #include <handler.h>
 #include <scheduler.h>
 #include "p1.5test_rikaya_v0.h"
+#include "p2test_rikaya.c"
 
 void populate(state_t *area, memaddr addr)
 {
@@ -22,35 +24,41 @@ int main(void)
     populate((state_t*) INTRPT_NEWAREA,        (memaddr) intrpt_handler);
     
     initPcbs();
+    initASL();
     INIT_LIST_HEAD(&ready_queue);
     
     /*TEST 1*/
     struct pcb_t *p1 = allocPcb();
-    p1->p_s.status = (memaddr) 0x10000404;
+    /*p1->p_s.status = (memaddr) 0x10000404;*/
+    p1->p_s.status = (memaddr) 0x1000FF04;
     p1->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 1);
-    p1->p_s.pc_epc = (memaddr) test1;
+    /*p1->p_s.pc_epc = (memaddr) test1;*/
+    p1->p_s.pc_epc = (memaddr) test;
     p1->orig_priority = 1;
     p1->priority = 1;
     
     /*TEST 2*/
+    /*
     struct pcb_t *p2 = allocPcb();
     p2->p_s.status = (memaddr) 0x10000404;
     p2->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 2);
     p2->p_s.pc_epc = (memaddr) test2;
     p2->orig_priority = 2;
     p2->priority = 2;
-    
+    */
     /*TEST 3*/
+    /*
     struct pcb_t *p3 = allocPcb();
     p3->p_s.status = (memaddr) 0x10000404;
     p3->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 3);
     p3->p_s.pc_epc = (memaddr) test3;
     p3->orig_priority = 3;
     p3->priority = 3;
-    
+    */
     insertProcQ(&ready_queue, p1);
+    /*
     insertProcQ(&ready_queue, p2);
     insertProcQ(&ready_queue, p3);
-
+	*/
     scheduler();
 }
