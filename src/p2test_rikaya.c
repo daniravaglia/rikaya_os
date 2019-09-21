@@ -28,7 +28,10 @@
 typedef unsigned int devregtr;
 typedef unsigned int cpu_t;
 typedef unsigned int pid_t;
-
+void wannaprint(int a){}
+void iamin(int c){}
+void done(int d){}
+void exiting(int b){}
 /* if these are not defined */
 /* typedef U32 cpu_t; */
 /* typedef U32 pid_t; */
@@ -120,9 +123,9 @@ void print(char *msg) {
 	char * s = msg;
 	devregtr * base = (devregtr *) (TERM0ADDR);
 	devregtr status;
-
+    wannaprint(term_mut);
 	SYSCALL(PASSEREN, (int)&term_mut, 0, 0);				/* get term_mut lock */
-
+    iamin(term_mut);
 	while (*s != '\0') {
 		/* Put "transmit char" command+char in term0 register (3rd word). This 
 			 actually starts the operation on the device! */
@@ -133,16 +136,17 @@ void print(char *msg) {
 
 		/*		PANIC(); */
 
-		if ((status & TERMSTATMASK) != TRANSM)
+		if ((status & TERMSTATMASK) != TRANSM){
 			PANIC();
-
+		}
 		if (((status & TERMCHARMASK) >> BYTELEN) != *s)
 			PANIC();
 
 		s++;	
 	}
-
+    done(term_mut);
 	SYSCALL(VERHOGEN, (int)&term_mut, 0, 0);				/* release term_mut */
+	exiting(term_mut);
 }
 
 
@@ -254,11 +258,12 @@ void test() {
 	gchild4state.reg_sp = gchild3state.reg_sp - FRAME_SIZE;
 	gchild4state.pc_epc = (memaddr)p8leaf;
 	gchild4state.status = STATUS_ALL_INT_ENABLE(gchild4state.status);
-
 	/* create process p2 */
+
 	SYSCALL(CREATEPROCESS, (int)&p2state, DEFAULT_PRIORITY, 0);				/* start p2     */
 
 	print("p2 was started\n");
+
 
 	SYSCALL(VERHOGEN, (int)&startp2, 0, 0);					/* V(startp2)   */
 
@@ -341,7 +346,8 @@ void p2() {
 
 	/* test of SYS6 */
 
-	now1 = getTODLO();                  				/* time of day   */
+	now1 = getTODLO();  
+	             				/* time of day   */
 	SYSCALL(GETCPUTIME, (int)&user_t1, (int)&kernel_t1, (int)&wallclock_t1);			/* CPU time used */
 
 	/* delay for several milliseconds */
@@ -491,7 +497,6 @@ void p4() {
 void p5prog() {
 	unsigned int exeCode = pstat_o.cause;
 	exeCode = (exeCode & CAUSEMASK)>>2;
-
 	switch (exeCode) {
 		case EXC_BUSINVFETCH:
 			print("pgmTrapHandler - Access non-existent memory\n");

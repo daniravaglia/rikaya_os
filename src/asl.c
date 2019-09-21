@@ -35,22 +35,37 @@ void initASL()
 /*DESCRIZIONE: restituisce il puntatore al SEMD nella ASL
 la cui chiave è pari a key. Se non esiste un elemento nella
 ASL con chiave eguale a key, viene restituito NULL.*/
-semd_t* getSemd(int *key)
+semd_t *getSemd(int *key)
 {
     struct list_head *testa = semd_h.next;        
     while (testa != &semd_h)
     {    
-        struct semdFree *tmp = container_of(testa, struct semdFree, iter);
-        struct semd_t *tmp2 = &(tmp->semd);
-
-        if ((tmp2->s_key) == key)
-        {   
-            return tmp2;
-        }
+        struct semd_t *tmp = container_of(testa, struct semd_t, s_next);
+        if (tmp->s_key == key)
+            return tmp;
         testa = testa->next;
     }
     return NULL;
     
+}
+semd_t *allocSemd(int *key)
+{
+    if(!list_empty(&semdFree_h))
+    {
+        struct list_head *removeme = semdFree_h.next;
+        list_del(semdFree_h.next);
+        struct semdFree *container = container_of(removeme, struct semdFree, iter);
+        struct semd_t *newsemd = &(container->semd);
+        INIT_LIST_HEAD(&(newsemd->s_next));
+        list_add(&(newsemd->s_next), &semd_h);
+        newsemd->s_key = key;
+        INIT_LIST_HEAD(&(newsemd->s_procQ));
+        return newsemd;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 /*DESCRIZIONE: Viene inserito il PCB puntato da p nella
 coda dei processi bloccati associata al SEMD con chiave
@@ -71,16 +86,15 @@ int insertBlocked(int *key,pcb_t* p)
         //controllo se la free list è vuota
         if (list_empty(&semdFree_h))
             return 1;
-        
-        struct list_head *new_semd = semdFree_h.next;
-        list_del(semdFree_h.next);
-        list_add(new_semd, &semd_h);
-        struct semdFree *semdFree = container_of(new_semd,struct semdFree, iter);
-        struct semd_t *semd = &(semdFree->semd);
-        semd->s_key = key;
+        struct semd_t *newsemd = allocSemd(key);
         p->p_semkey = key;       
-        
-        insertProcQ(&(semd->s_procQ), p);
+        INIT_LIST_HEAD(&(newsemd->s_procQ));
+        insertProcQ(&newsemd->s_procQ, p);
+     }
+     else
+     {
+        insertProcQ(&semdKey->s_procQ, p);
+        p->p_semkey = key;
      }
      return 0;
 }
@@ -102,12 +116,14 @@ pcb_t* removeBlocked(int *key)
         return NULL;
     }
     struct pcb_t *proc = removeProcQ(&(tmp->s_procQ));
+    if (proc != NULL)
+        proc->p_semkey = NULL;
     //caso in cui il processo tolto dalla coda del semaforo è l'ultimo
     if (list_empty(&(tmp->s_procQ)))
     {
         struct semdFree *master = container_of(tmp, struct semdFree, semd);
         INIT_LIST_HEAD(&(tmp->s_procQ));  
-        list_del(&(master->iter));
+        list_del(&(tmp->s_next));
         list_add(&(master->iter), &semdFree_h);
     }
     return proc;
@@ -120,10 +136,21 @@ allora restituisce NULL (condizione di errore).
 Altrimenti, restituisce p.*/
 pcb_t* outBlocked(pcb_t *p)
 {
-    struct semd_t *semd;    
-    if ((semd = getSemd(p->p_semkey))== NULL)
-        return NULL;    
-    return outProcQ(&(semd->s_procQ), p);    
+    struct semd_t *tmp;    
+    if ((tmp = getSemd(p->p_semkey))== NULL)
+        return NULL;
+        
+    outProcQ(&(tmp->s_procQ), p); 
+       
+    if (list_empty(&(tmp->s_procQ)))
+    {
+        struct semdFree *master = container_of(tmp, struct semdFree, semd);
+        INIT_LIST_HEAD(&(tmp->s_procQ));  
+        list_del(&(tmp->s_next));
+        list_add(&(master->iter), &semdFree_h);
+    }
+    p->p_semkey = NULL;
+    return p;
 }
 
 /*DESCRIZIONE: Restituisce (senza rimuovere) il

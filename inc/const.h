@@ -21,18 +21,18 @@
 #define EOS '\0'
 
 #define DEV_PER_INT 8 /* Maximum number of devices per interrupt line */
-
-#define NULL ((void *)0)
-
+#define SYSCALL_BREAK_NEWAREA 0x200003D4
+#define PRGM_TRAP_NEWAREA     0x200002BC
+#define TLB_MNGMT_NEWAREA     0x200001A4
+#define INTRPT_NEWAREA        0x2000008C
+#define FRAMESIZE 0x1000
 #define CR 0x0a   /* carriage return as returned by the terminal */
 
 //#define FRAMESIZE 4096
 
 /* New areas */
-#define SYSCALL_BREAK_NEWAREA 0x200003D4
-#define PRGM_TRAP_NEWAREA     0x200002BC
-#define TLB_MNGMT_NEWAREA     0x200001A4
-#define INTRPT_NEWAREA        0x2000008C
+/*
+
 
 #define TRANSMITTED 5
 #define TRANSTATUS 2
@@ -52,13 +52,13 @@
 #define RAMBASE *((unsigned int *)0x10000000)
 #define RAMSIZE *((unsigned int *)0x10000004)
 #define RAMTOP (RAMBASE + RAMSIZE)
-#define FRAMESIZE 0x1000
+#
 
 #define SYS3 3
 #define STEPS 6
 #define GANTT_SIZE 20
 
-#define TIME_SLICE 0xBB8
+#define TIME_SLICE 0xBB8*/
 
 
 

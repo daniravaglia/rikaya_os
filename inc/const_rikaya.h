@@ -14,6 +14,7 @@
 
 typedef unsigned int U32;
 typedef int S32;
+#define SEMAPHORE		S32
 
 /* Maxi number of overall (eg, system, daemons, user) concurrent processes */
 #define MAXPROC 20

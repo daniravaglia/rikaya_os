@@ -19,13 +19,18 @@ typedef struct pcb_t {
 
 	/* processor state, etc */
 	state_t       		p_s;     
-
+	state_t             *handler[3];
+	state_t             *old[3];
+	
+	int                 isTutor;
+    unsigned int        timer;
 	/* process priority */
-	int			priority;
-
+	int		        	priority;
+    
 	/* key of the semaphore on which the process is eventually blocked */
-	int			*p_semkey;
-	int         orig_priority;
+	int			        *p_semkey;
+	int                 orig_priority;
+	/* tempo di esecuzione del processo */	
 } pcb_t;
 
 
