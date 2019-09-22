@@ -48,6 +48,7 @@ pcb_t *allocPcb(void)
 	  	INIT_LIST_HEAD(&(newProc->process.p_child));
 	  	INIT_LIST_HEAD(&(newProc->process.p_sib));
 	  	newProc->process.priority = 0;
+
 	  	return &(newProc->process);	
     }
 }

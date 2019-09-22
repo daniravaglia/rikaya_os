@@ -8,13 +8,11 @@
 
 struct devregarea *reg_area = (devregarea_t*) 0x10000000;
 
-/*funzione per fare debug*/
-void log_priority(unsigned int value) {}
-void logsem(int a){}
+
 void idle(){
 
 	while(1){
-		logsem(terminal_t[0]);
+        ;;
 	}
 }
 void scheduler(int waiting)
@@ -24,8 +22,6 @@ void scheduler(int waiting)
     {
         /* ripristino la priorità originale del active_proc */
         active_proc->priority = active_proc->orig_priority;
-
-        /*log_process_order(active_proc->orig_priority);*/
         
         /* incremento la priority di tutti i processi rimasti in coda */
         struct list_head* iter;
@@ -33,11 +29,16 @@ void scheduler(int waiting)
 		    pcb_t *item=container_of(iter,struct pcb_t,p_next);	
 		    if (item->priority != 0)
 		    	item->priority += 1; 	
-		    log_priority(item->priority);
 	    }
-
+	    /*se è la prima volta che viene eseguito mi segno il tempo di inizio */
+        if (active_proc->tot_time == 0)
+        {
+            active_proc->tot_time = TOD_LO;
+        }
+        /* time management */
+        active_proc->usr_start = TOD_LO;
+        
 	    reg_area->intervaltimer = SCHED_TIME_SLICE;
-	    /*setTIMER(SCHED_TIME_SLICE);*/
         LDST(&(active_proc->p_s));
     }
     else {

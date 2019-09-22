@@ -31,6 +31,7 @@ typedef struct pcb_t {
 	int			        *p_semkey;
 	int                 orig_priority;
 	/* tempo di esecuzione del processo */	
+	unsigned int        tot_time, ker_tot, ker_start, usr_start, usr_tot;
 } pcb_t;
 
 

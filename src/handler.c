@@ -10,20 +10,6 @@
 #include <const_rikaya.h>
 #include <asl.h>
 
-/*funzione per debug*/
-void debug1(unsigned int value){ }
-void debug2(unsigned int value, unsigned int value2){ }
-void debug3(unsigned int value, unsigned int value2){ }
-void debug4(unsigned int value){ }
-void debug5(unsigned int value){ }
-void debug6(unsigned int value){ }
-void debug7(unsigned int value){ }
-void debug8(unsigned int value){ }
-void debug9(unsigned int value){ }
-void debug10(unsigned int value1, unsigned int value2, unsigned int value3, unsigned int value4){ }
-
-unsigned int exp_time = 0;
-
 void cpystate(state_t *dest, state_t *src)
 {
 	dest->entry_hi = src->entry_hi;
@@ -37,30 +23,11 @@ void cpystate(state_t *dest, state_t *src)
 	dest->hi = src->hi;        
 	dest->lo = src->lo;
 }
-/*rimozione di tutta la progenie del processo "father" dalla ready queue*/
-void kill_em_all(struct pcb_t *father)
+
+unsigned int UpdateTime(unsigned int start)
 {
-    /*rimuovo il padre dalla ready queue*/
-    outProcQ(&ready_queue, father);
-    
-    /*se non ha figli mi fermo*/
-    if (!emptyChild(father))
-    {
-        struct pcb_t *child = container_of(father->p_child.next, struct pcb_t, p_sib);
-        struct list_head *pos;
-        
-        /*richiamo la funzione sul primo figlio*/
-        kill_em_all(child);
-        
-        list_for_each(pos, &(child->p_sib))
-        {
-            struct pcb_t *sib = container_of(pos, struct pcb_t, p_sib);
-            /*richiamo la funzione per tutti i restanti figli*/
-            kill_em_all(sib);
-        }
-    }
-    else
-        return;
+    unsigned int tot = (TOD_LO - start);
+    return tot;
 }
 
 void Passeren(int *sem)
@@ -79,6 +46,7 @@ void Passeren(int *sem)
 		}
 		cpystate(&proc->p_s, (state_t *) SYSBK_OLDAREA);
 		proc->p_s.pc_epc += WORD_SIZE;
+		active_proc->ker_tot += TOD_LO - active_proc->ker_start;
 		active_proc = NULL;
 		scheduler(0);
 	}
@@ -102,9 +70,6 @@ void Verhogen(int *sem, int value)
 			proc->p_semkey = NULL;
 			insertProcQ(&ready_queue, proc);
 		}
-		else {
-		    *sem = 1;
-		}
 	}
 }
 
@@ -114,8 +79,7 @@ int CreateProcess(state_t *statep, int priority,  void **cpid)
 	if (child != NULL)
 	{
 		cpystate(&(child->p_s), statep);
-		/* prova senza cpystate */
-		child->p_s.status = statep->status | (1<<2);
+		child->p_s.status = statep->status; //| (1<<2);
 		
 		child->handler[0] = NULL;
 		child->handler[1] = NULL;
@@ -128,6 +92,7 @@ int CreateProcess(state_t *statep, int priority,  void **cpid)
 		child->priority = priority;
 		child->orig_priority = priority;
 		child->timer = 0;
+		child->tot_time = 0;
 		
 		insertChild(active_proc, child);
 		
@@ -143,29 +108,77 @@ int CreateProcess(state_t *statep, int priority,  void **cpid)
 	}
 }
 
-void WaitIO(termreg_t *dev_reg, unsigned int command)
-{
-    /*TODO:
-	1) capire quale device vuole fare I-O
-	2) capire il numero del device
-	3) fare una P sul sem corrispondente
-	4) scrivere il comando sul dev reg
-	4.a) se è terminale capire se fare transm o recv*/
-	/*numero del device che uso*/
-    /*
-	if (dev_reg < (termreg_t *) TERM0ADDR)
+void WaitIO(unsigned int *dev_reg, unsigned int command)
+{   
+	if (dev_reg < (unsigned int *) TERM0ADDR)
 	{
 		//not a terminal
-		PANIC();
-	}*/
-	/*al momento do per scontato che ci sia solo un terminale*/
-	unsigned int devNo = 0;
-	/*non sono sicuro che funzioni questo metodo per prendere il numero del device*/
-	/*unsigned int devNo = (old_area->gpr[5] - 0x10000050 - ((7 - 3) * 0x80)) / 0x10;*/
-	/*al momento tralascio la distinzione fra transm e recv, assumo solo transm*/
-	dev_reg->transm_command = command;
-	Passeren((&terminal_t[devNo]));
+		dtpreg_t *dev = (dtpreg_t *) dev_reg;
+		dev->command = command;
+		/*Disk*/
+		if (dev_reg < (unsigned int *) TAPE0 && dev_reg > (unsigned int *) DISK0)
+		{
+		    /*controllo quale degli 8 devices fa l'operazione*/
+		    for (int i = 0; i < 8; i++)
+		    {
+		        if (dev_reg == (unsigned int *) DISK0 + i*0x80)
+		        {
+		            Passeren(&disk[i]);
+		        }
+		    }
+		}
+		/*Tape*/
+		else if (dev_reg < (unsigned int *) NETWORK0 && dev_reg > (unsigned int *) TAPE0)
+		{
+		    for (int i = 0; i < 8; i++)
+		    {
+		        if (dev_reg == (unsigned int *) TAPE0 + i*0x80)
+		        {
+		            Passeren(&tape[i]);
+		        }
+		    }
+		}
+		/*Printer*/
+		else if (dev_reg < (unsigned int *) TERM0ADDR && dev_reg > (unsigned int *) PRINTER0)
+		{
+		    for (int i = 0; i < 8; i++)
+		    {
+		        if (dev_reg == (unsigned int *) PRINTER0 + i*0x80)
+		        {
+		            Passeren(&printer[i]);
+		        }
+		    }
+		}
 		
+	}
+	else
+	{
+	    termreg_t *dterm = (termreg_t *) dev_reg;
+	    if ((command & 0xFF00) << 8)
+	    {
+	        /*transmitter*/ 
+	        dterm->transm_command = command;
+	        for (int i = 0; i < 8; i++)
+		    {
+		        if (dev_reg == (unsigned int *) TERM0ADDR + i*0x80)
+		        {
+		            Passeren(&terminal_t[i]);
+		        }
+		    }
+	    }
+	    else
+	    {
+	        /*receiver*/
+	        dterm->recv_command = command;
+	        for (int i = 0; i < 8; i++)
+		    {
+		        if (dev_reg == (unsigned int *) TERM0ADDR + i*0x80)
+		        {
+		            Passeren(&terminal_r[i]);
+		        }
+		    }
+	    }
+	}	
 }
 
 void WaitClock()
@@ -174,6 +187,7 @@ void WaitClock()
 	active_proc->p_s.pc_epc += WORD_SIZE;
 	struct pcb_t *wproc = active_proc;
 	insertProcQ(&wait_queue, wproc);
+	active_proc->ker_tot += TOD_LO - active_proc->ker_start;
 	active_proc = NULL;
 	scheduler(0);
 }
@@ -225,7 +239,6 @@ int TerminateProcess(void **pid)
         /*controllo se sto terminando un processo root */
         if (new_parent == active_proc)
         {
-            debug1(0);
             while ((child = removeChild(active_proc)) != NULL)
             {
                 if (child->p_semkey != NULL)
@@ -255,7 +268,6 @@ int TerminateProcess(void **pid)
             outBlocked(active_proc);
             active_proc->p_semkey = NULL;
         }
-
         outChild(active_proc);
         freePcb(active_proc);
         active_proc = NULL;
@@ -286,11 +298,8 @@ int TerminateProcess(void **pid)
                 insertChild(new_parent, child);
             }
             /* controllo se il processo era in attesa su qualche semaforo ed/o eventuali code */
-            
-                
             if (tokill->p_semkey != NULL)
             {       
-
                 (*tokill->p_semkey)++;
                 outBlocked(tokill);
                 tokill->p_semkey = NULL;
@@ -304,12 +313,33 @@ int TerminateProcess(void **pid)
         }
         else
             return -1;
-    }
-    
+    }    
 }
-/************************************************************SYS_BRK HANDLER********************************************************/
+
+void GetCpuTime(unsigned int *user, unsigned int *kernel, unsigned int *wallclock)
+{
+
+    if (wallclock != NULL)
+    {
+        *wallclock = (TOD_LO - active_proc->tot_time);
+    }
+    if (kernel != NULL)
+    {
+        active_proc->ker_tot += UpdateTime(active_proc->ker_start);
+        *kernel = active_proc->ker_tot;
+    }
+    if (user != NULL)
+    {
+        *user = active_proc->usr_tot;
+    }
+}
+/********************************************************SYS_BRK HANDLER********************************************************/
 void sys_break_handler()
 {
+    /*time*/
+    active_proc->usr_tot += UpdateTime(active_proc->usr_start);
+    active_proc->ker_start = TOD_LO;
+    
     state_t *old_area = (state_t*) SYSBK_OLDAREA;
     int ret_val = -2;
     /*prendo solo i bit riguardanti la causa dell'eccezione*/
@@ -318,45 +348,24 @@ void sys_break_handler()
     /* se il codice riguarda una system call*/
     if (exc_code == 8)
     {
-    	//unsigned int *ktime,*ptime,*wtime;
         unsigned int syscall = old_area->gpr[3];
         switch (syscall)
         {
-            /*termina il processo corrente e tutta la sua progenie, rimuovendoli 
-              dalla Ready Queue.*/
             case TERMINATEPROCESS:
                 ret_val = TerminateProcess((void **) old_area->gpr[4]);
-
-                if (ret_val == 0)
-                    ret_val = 0;
                 break;
-                /*
-                active_proc = NULL;
-                scheduler(0);*/
                 
             case VERHOGEN: 
-            	/*se una volta incrementato il semaforo il suo valore è >= 0 allora sblocco (se c'è) un proc in coda*/ 
 				Verhogen((int *) old_area->gpr[4], 0);
 				
 				break;
 				
 			case PASSEREN:
-				/*se il val del semaforo è < 0 allora blocco il proc in coda al semaforo*/
             	Passeren((int *) old_area->gpr[4]);
 				break;
 				
 			case GETCPUTIME:
-				/*TODO: da sistemare*/
-				/*
-				active_proc->p_time += SCHED_TIME_SLICE - *((unsigned int *) BUS_INTERVALTIMER);
-								
-				ptime = old_area->gpr[4];
-				ktime = old_area->gpr[5];
-				wtime = old_area->gpr[6];
-				
-				*ptime = active_proc->p_time;
-				*ktime = active_proc->k_time;
-				*wtime = (*ptime) + (*ktime);*/
+                GetCpuTime((unsigned int *) old_area->gpr[4], (unsigned int *) old_area->gpr[5], (unsigned int *) old_area->gpr[6]);
 				break;
 				
 			case CREATEPROCESS:
@@ -367,7 +376,7 @@ void sys_break_handler()
 				WaitClock();
 				break;
 			case WAITIO:
-			    WaitIO((termreg_t *) old_area->gpr[5], old_area->gpr[4]);				
+			    WaitIO((unsigned int *) old_area->gpr[5], (unsigned int) old_area->gpr[4]);				
 				break;
 				
 			case SETTUTOR:
@@ -384,9 +393,9 @@ void sys_break_handler()
         {
             if (active_proc->handler[0] != NULL)
             {
-
                 cpystate((state_t *) active_proc->old[0], (state_t *) SYSBK_OLDAREA);  
                 active_proc->old[0]->pc_epc += WORD_SIZE;  
+                active_proc->ker_tot += TOD_LO - active_proc->ker_start;
                 LDST(active_proc->handler[0]);
             }
             else 
@@ -395,19 +404,13 @@ void sys_break_handler()
             }
         }	
         /* ripristino lo stato */
-		active_proc->p_s.entry_hi = old_area->entry_hi;
-		active_proc->p_s.cause = old_area->cause;
-		active_proc->p_s.status = old_area->status;
-		active_proc->p_s.pc_epc = old_area->pc_epc + WORD_SIZE;
-		for (int i = 0; i<31; i++)
-		{
-		    active_proc->p_s.gpr[i] = old_area->gpr[i];
-		}
-		active_proc->p_s.hi = old_area->hi;        
-		active_proc->p_s.lo = old_area->lo;
+
+		cpystate(&active_proc->p_s, (state_t *) SYSBK_OLDAREA);
+		active_proc->p_s.pc_epc += WORD_SIZE;
 		if (ret_val != -2)
 		    active_proc->p_s.gpr[1] = ret_val;
 		
+		active_proc->ker_tot += UpdateTime(active_proc->ker_start);
 		LDST(&(active_proc->p_s));
     }
     else
@@ -415,7 +418,9 @@ void sys_break_handler()
         if (active_proc->handler[0] != NULL && active_proc->old[0] != NULL)
         {
             cpystate((state_t *) active_proc->old[0], (state_t *) SYSBK_OLDAREA);
-            active_proc->old[0]->pc_epc += WORD_SIZE;  
+            active_proc->old[0]->pc_epc += WORD_SIZE; 
+            active_proc->ker_tot += UpdateTime(active_proc->ker_start); 
+            
             LDST(active_proc->handler[0]);
         }
         else
@@ -424,13 +429,19 @@ void sys_break_handler()
         }
     }
 }
-
+/*****************************************************TRAP HANDLER***********************************************************************/
 void prgrm_trap_handler() 
 {
+    active_proc->usr_tot += UpdateTime(active_proc->usr_start);
+    active_proc->ker_start = TOD_LO;
+    
     if (active_proc->handler[2] != NULL && active_proc->old[2] != NULL)
     {
         cpystate((state_t *) active_proc->old[2], (state_t *) PGMTRAP_OLDAREA);
-        active_proc->old[2]->pc_epc += WORD_SIZE;  
+        active_proc->old[2]->pc_epc += WORD_SIZE; 
+        
+        active_proc->ker_tot += UpdateTime(active_proc->ker_start); 
+         
         LDST(active_proc->handler[2]);
     }
     else
@@ -440,13 +451,18 @@ void prgrm_trap_handler()
     PANIC();
 }
 
-
+/********************************************************TLB HANDLER***********************************************************/
 void tlb_mngmt_handler() 
 {
+    active_proc->usr_tot += UpdateTime(active_proc->usr_start);
+    active_proc->ker_start = TOD_LO;
+    
     if (active_proc->handler[1] != NULL && active_proc->old[1] != NULL)
     {
         cpystate((state_t *) active_proc->old[1], (state_t *) TLB_OLDAREA);  
         active_proc->old[1]->pc_epc += WORD_SIZE;  
+        
+        active_proc->ker_tot += UpdateTime(active_proc->ker_start); 
         LDST(active_proc->handler[1]);
     }
     else
@@ -455,7 +471,7 @@ void tlb_mngmt_handler()
     }
     PANIC();
 }
-/********************************************************INTERRUPT HANDLER***************************************************************/
+/*********************************************************INTERRUPT HANDLER***************************************************************/
 void Terminal()
 {
     unsigned int ret_st;
@@ -488,9 +504,7 @@ void Terminal()
 		}
 			
 	}
-
     /* ripristino lo stato */
-    
     state_t *old_area = (state_t*) 0x20000000;
     active_proc->p_s.entry_hi = old_area->entry_hi;
     active_proc->p_s.cause = old_area->cause;
@@ -502,10 +516,8 @@ void Terminal()
     }
     active_proc->p_s.hi = old_area->hi;        
     active_proc->p_s.lo = old_area->lo;
+    active_proc->ker_tot += UpdateTime(active_proc->ker_start); 
     LDST(&(active_proc->p_s)); 
-    /*insertProcQ(&ready_queue, active_proc);
-	active_proc = NULL;
-	scheduler(0);*/
 }
 
 void IntervalTimer(state_t *old_area)
@@ -522,6 +534,7 @@ void IntervalTimer(state_t *old_area)
     active_proc->p_s.hi = old_area->hi;        
     active_proc->p_s.lo = old_area->lo;
     insertProcQ(&ready_queue, active_proc);
+    active_proc->ker_tot += UpdateTime(active_proc->ker_start); 
     /* controllo se qualcuno ha fatto una "WAITCLOCK" */
     if (!emptyProcQ(&wait_queue))
     {
@@ -550,28 +563,104 @@ void IntervalTimer(state_t *old_area)
     scheduler(0);
 }
 
+void PrintTapeDisk(int line)
+{
+	unsigned int *pendingdev = INTR_CURRENT_BITMAP(line);
+	/*ciclo for sulla bitmap dei pending dev, per ogni bit acceso 
+	  faccio le op di cui hanno bisogno*/
+	unsigned int zmask = 0;
+	unsigned int bitmask;
+	unsigned int isPending;
+	for (int i = 0; i < 8; i++)
+	{
+		/*controllo se l' i-esimo bit è acceso*/
+		bitmask = (zmask | 1) << i;
+		isPending = (*pendingdev & bitmask) >> i;
+		
+		if (isPending)
+		{	
+			/*calcolo l'indirizzo del devreg che ha lanciato l'eccezione*/
+			dtpreg_t *dev =(dtpreg_t *) (0x10000050 + ((line - 3) * 0x80) + (i * 0x10));
+			/*device ready */
+		    if (dev->status == 1)
+		    {
+		        dev->command = DEV_C_ACK;
+		        switch (line)
+		        {
+		            /*Disk*/
+		            case 3:
+		                Verhogen(&disk[i], 0);
+		                break;
+		            /*Tape*/
+		            case 4:
+		                Verhogen(&tape[i], 0);
+		                break;
+		            /*Printer*/
+		            case 6:
+		                Verhogen(&printer[i], 0);
+		                break;
+		        }
+		    }
+		}	
+	}
+    /* ripristino lo stato */
+    state_t *old_area = (state_t*) 0x20000000;
+    active_proc->p_s.entry_hi = old_area->entry_hi;
+    active_proc->p_s.cause = old_area->cause;
+    active_proc->p_s.status = old_area->status;
+    active_proc->p_s.pc_epc = old_area->pc_epc ;
+    for (int i = 0; i<31; i++)
+    {
+        active_proc->p_s.gpr[i] = old_area->gpr[i];
+    }
+    active_proc->p_s.hi = old_area->hi;        
+    active_proc->p_s.lo = old_area->lo;
+    active_proc->ker_tot += UpdateTime(active_proc->ker_start); 
+    LDST(&(active_proc->p_s)); 
+}
+
 void intrpt_handler() 
 {
-    /*prendo solo il bit riguardante l'interval timer*/
-    /*unsigned int device = ((getCAUSE() >> 8) & 0x4) >> 2;*/
-    /*1111 1111
-      1000 0000 */
+    /*time*/
+    active_proc->usr_tot += UpdateTime(active_proc->usr_start);
+    active_proc->ker_start = TOD_LO;
+
     unsigned int cause = getCAUSE() >> 8;
 
     /*Inter-processor interrupts*/
     if ((cause & 0x1) == 0x1)
     {
-    	
+    	/* ... */
     }
     /*Processor Local Timer*/
     else if (((cause & 0x2) >> 1) == 0x1)
     {
-
+        /*Non abilitato*/
+    }
+    /*Disk*/
+    else if (((cause & 0x8) >> 3) == 0x1)
+    {
+        PrintTapeDisk(3);
     }
     /*Interval Timer*/
     else if (((cause & 0x4) >> 2) == 0x1)
     {
         IntervalTimer((state_t *) INT_OLDAREA);
+    }
+    /*Tape*/
+    else if (((cause & 0x10) >> 4) == 0x1)
+    {
+        PrintTapeDisk(4);
+    }
+    /*Network Devices*/
+    else if (((cause & 0x20) >> 5) == 0x1)
+    {
+        /* ... */
+    }
+    /*Printer*/
+    else if (((cause & 0x40) >> 6) == 0x1) 
+    {
+        PrintTapeDisk(6);
     }
     /*Terminal Devices*/
     else if (((cause & 0x80) >> 7) == 0x1)

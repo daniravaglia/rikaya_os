@@ -8,7 +8,7 @@
 #define INTERVAL_TIMER  *((unsigned int*)0x10000020)
 #define TIME_SCALE      *((unsigned int*)0x10000024)
 
-
+#define ROOT    100;
 #define DEFAULT_PRIORIY     1
 #define IDLE_PRIORITY       0
 
@@ -144,6 +144,11 @@ typedef int S32;
 /* Address of the first real device register */
 #define DEV_REGS_START 0x10000050
 
+#define DISK0 0x10000050
+#define TAPE0 0x100000D0
+#define NETWORK0 TAPE0 + 0x80
+#define PRINTER0 NETWORK0 + 0x80
+#define	TERM0ADDR	0x10000250
 /* Size of a single device register */
 #define DEV_REG_LEN 4
 
@@ -314,7 +319,7 @@ typedef int S32;
 
 #define STATUSMASK	0xFF
 
-#define	TERM0ADDR	0x10000250
+
 
 #define NUM_LINES 7 /* Linee di interrupt */
 #define NUM_AREAS 8 /* numero delle new/old areas */

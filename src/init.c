@@ -19,16 +19,8 @@ void populate(state_t *area, memaddr addr)
     new_area->pc_epc = addr;
     new_area->reg_sp = (memaddr) RAMTOP;
     new_area->status = (memaddr) 0x10000000; /* tutti i bit settati a 0 */
-    /*new_area->status = (memaddr) 0;*/
 }
 
-void populate2(state_t *area, memaddr addr)
-{
-    state_t *new_area = area;
-    new_area->pc_epc = addr;
-    new_area->reg_sp = (memaddr) RAMTOP;
-    new_area->status = (memaddr) 0x1000FF04; /* tutti i bit settati a 0 */
-}
 
 int main(void)
 {
@@ -44,6 +36,7 @@ int main(void)
     INIT_LIST_HEAD(&wait_queue);
     INIT_LIST_HEAD(&printQ);
     
+    /*inizializzo i semafori per i device */
 	for (int i = 0; i < 8; i++)
 	{
 		terminal_t[i] = 0;
@@ -54,19 +47,14 @@ int main(void)
 		printer[i] = 0;
 	}
     
-    /*p_termT[0] = (int) &terminal_t[0];*/
-    
-    /*TEST 1*/
+    /*ROOT*/
     struct pcb_t *p1 = allocPcb();
     p1->p_s.status = (memaddr) 0x1000FF04;
-
-    /*p1->p_s.status = (memaddr) (1<<2| 0xFF00 | 1<<27);*/
-
     p1->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 1);
     p1->p_s.pc_epc = (memaddr) test;
     p1->p_semkey = NULL;
-    p1->orig_priority = 100;
-    p1->priority = 100;
+    p1->orig_priority = ROOT;
+    p1->priority = ROOT;
     p1->handler[0] = NULL;
     p1->handler[1] = NULL;
     p1->handler[2] = NULL;
@@ -74,10 +62,10 @@ int main(void)
     p1->old[1] = NULL;
     p1->old[2] = NULL;
     p1->timer = 0;
+    p1->tot_time = 0;
     
     /* IDLE PROC */
     struct pcb_t *idlep = allocPcb();
-    /*idlep->p_s.status = (memaddr) (1<<2| 0xFF00 | 1<<27);*/
     idlep->p_s.status = (memaddr) 0x1000FF04;
     idlep->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 2);
     idlep->p_s.pc_epc = (memaddr) idle;
@@ -91,30 +79,11 @@ int main(void)
     idlep->old[1] = NULL;
     idlep->old[2] = NULL;
     idlep->timer = 0;
-    /*TEST 2*/
-    /*
-    struct pcb_t *p2 = allocPcb();
-    p2->p_s.status = (memaddr) 0x10000404;
-    p2->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 2);
-    p2->p_s.pc_epc = (memaddr) test2;
-    p2->orig_priority = 2;
-    p2->priority = 2;
-    */
-    /*TEST 3*/
-    /*
-    struct pcb_t *p3 = allocPcb();
-    p3->p_s.status = (memaddr) 0x10000404;
-    p3->p_s.reg_sp = (memaddr) (RAMTOP - FRAMESIZE * 3);
-    p3->p_s.pc_epc = (memaddr) test3;
-    p3->orig_priority = 3;
-    p3->priority = 3;
-    */
+    idlep->tot_time = 0;
+
     insertProcQ(&ready_queue, p1);
     insertProcQ(&ready_queue, idlep);
-    /*
-    insertProcQ(&ready_queue, p2);
-    insertProcQ(&ready_queue, p3);
-	*/
+
     scheduler(0);
     return 0;
 }
