@@ -1,6 +1,6 @@
 Struttura directory:
 
-    rykaya_os
+    rikaya_os
     |
     |---src/    => .c files 
     |
